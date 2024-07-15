@@ -9,7 +9,8 @@ public class NameTag : MonoBehaviour
 
     void Start()
     {
-        _cameraTransform = Camera.main.transform;
+        if(UnityEngine.Camera.main.transform != null)
+            _cameraTransform = UnityEngine.Camera.main.transform;
     }
 
     private void LateUpdate()
