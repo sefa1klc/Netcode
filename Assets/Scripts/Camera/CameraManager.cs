@@ -5,8 +5,8 @@ namespace Camera
 {
     public class CameraManager : Singleton<CameraManager>
     {
-        [SerializeField] private float _amplitudGain = 0.5f;
-        [SerializeField] private float _frequencyGain = 0.5f;
+        //[SerializeField] private float _amplitudGain = 0.5f;
+        //[SerializeField] private float _frequencyGain = 0.5f;
 
 
         private CinemachineVirtualCamera _virtualCamera;
@@ -18,15 +18,7 @@ namespace Camera
 
         public void FallowPLayer(Transform transform)
         {
-            _virtualCamera.Follow = transform;
-            var perlin = _virtualCamera.GetCinemachineComponent<CinemachineBasicMultiChannelPerlin>();
-            if (perlin != null)
-            {
-                perlin.m_AmplitudeGain = _amplitudGain;
-                perlin.m_FrequencyGain = _frequencyGain;
-            }
-            
-        
+            if (_virtualCamera != null)  _virtualCamera.Follow = transform;
         }
     }
 }

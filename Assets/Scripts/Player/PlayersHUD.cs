@@ -19,11 +19,6 @@ public class PlayersHUD : NetworkBehaviour
         }
     }
 
-    public void SetOverlay()
-    {
-        var localPlayerOverlay = gameObject.GetComponentInChildren<TextMeshProUGUI>();
-        localPlayerOverlay.text = _playersName.Value;
-    }
 
     private void Update()
     {
@@ -32,6 +27,13 @@ public class PlayersHUD : NetworkBehaviour
             SetOverlay();
         }
 
+    }
+
+
+    public void SetOverlay()
+    {
+        var localPlayerOverlay = gameObject.GetComponentInChildren<TextMeshProUGUI>();
+        localPlayerOverlay.text = _playersName.Value;
     }
 
 }

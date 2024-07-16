@@ -1,60 +1,33 @@
-using System;
-using Unity.VisualScripting;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
-namespace InputSystem
+public class InputManager : Singleton<InputManager>
 {
-    public class InputManager : Singleton<InputManager>
+    private PlayerAcitons _playeractions;
+
+    private void Awake()
     {
-        [SerializeField] private PlayerAcitons _playerActions;
-        [SerializeField] private PlayerInput _playerInput;
-        
-        public Vector2 Movement { get; private set; }
-        public Vector2 Look { get; private set; }
+        _playeractions = new PlayerAcitons();
+    }
 
-        private InputActionMap _currentmap;
-        private InputAction _movementActions;
-        private InputAction _lookActions;
+    private void OnEnable()
+    {
+        _playeractions.Enable();
+    }
 
-        private void Awake()
-        {
-            _playerActions = new PlayerAcitons();
-            _currentmap = _playerInput.currentActionMap;
-            _movementActions = _currentmap.FindAction("Movement");
-            _lookActions = _currentmap.FindAction("Look");
+    private void OnDisable()
+    {
+        _playeractions.Disable();
+    }
 
-            _movementActions.performed += onMove;
-            _lookActions.performed += onLook;
-            
-            _movementActions.canceled += onMove;
-            _lookActions.canceled += onLook;
+    public Vector2 GetPlayerMovement()
+    {
+        return _playeractions.Player.Movement.ReadValue<Vector2>();
+    }
 
-        }
-
-        private void onLook(InputAction.CallbackContext obj)
-        {
-            Look = obj.ReadValue<Vector2>();
-        }
-
-        private void onMove(InputAction.CallbackContext obj)
-        {
-            Movement = obj.ReadValue<Vector2>();
-        }
-
-        private void OnEnable()
-        {
-            _currentmap.Enable();
-        }
-
-        private void OnDisable()
-        {
-            _currentmap.Disable();
-        }
-
-        public Vector2 GetMouseDelta()
-        {
-            return _playerActions.Player.Look.ReadValue<Vector2>();
-        }
+    public Vector2 GetMouseDelta()
+    {
+        return _playeractions.Player.Look.ReadValue<Vector2>();
     }
 }

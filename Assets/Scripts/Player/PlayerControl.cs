@@ -1,16 +1,13 @@
 
-using Camera;
-using InputSystem;
-using Unity.Netcode;
 using UnityEngine;
-using Random = UnityEngine.Random;
+using Unity.Netcode;
+using Camera;
+using Cinemachine;
 
 [RequireComponent(typeof(NetworkObject))]
-[RequireComponent(typeof(NetworkTransport))]
 public class PlayerControl : NetworkBehaviour
 {
-
-    public enum PlayerState 
+    public enum PlayerState
     {
         Idle,
         Walk,
@@ -19,71 +16,83 @@ public class PlayerControl : NetworkBehaviour
         Attack
     }
 
-    [SerializeField] private float _walkSpeed = 3.5f;
-    //[SerializeField] private float _rotationSpeed = 1.5f;
-    //[SerializeField] private float _runSpeedOffset = 2.0f;
-    [SerializeField] private float gravity = 20.0F;
+    [SerializeField] private float MouseSensitivity = 21.9f;
+    [SerializeField] private float _walkSpeed = 7.0f;  
+    [SerializeField] private float _runSpeedOffset = 4.0f;  
     [SerializeField] private Transform _cameraTransform;
-    
-    [SerializeField] private Vector2 _defaulPositionRange = new Vector2(-4, 4);
-    [SerializeField] NetworkVariable<Vector3> _networkPositionDirection = new NetworkVariable<Vector3>();
-    [SerializeField] NetworkVariable<Vector3> _networkRotationDirection = new NetworkVariable<Vector3>();
+    [SerializeField] private Vector2 _defaultPositionRange = new Vector2(-4, 4);
+    [SerializeField] private NetworkVariable<Vector3> _networkPositionDirection = new NetworkVariable<Vector3>();
+    [SerializeField] private NetworkVariable<Vector3> _networkRotationDirection = new NetworkVariable<Vector3>();
     [SerializeField] private NetworkVariable<PlayerState> _networkPlayerState = new NetworkVariable<PlayerState>();
     [SerializeField] private NetworkVariable<float> _networkPlayerHealth = new NetworkVariable<float>(100);
     [SerializeField] private float _minMeleeDistance = 3.0f;
     [SerializeField] private GameObject _melee;
 
-    private CharacterController _controller;
-    private Animator _anim;
 
-    // client caches positions
+    [SerializeField] private float UpperLimit = -40f;
+    [SerializeField] private float BottomLimit = 70f;
+    [SerializeField] private float RotationSpeed = 10.0f;
+    [SerializeField] private Transform CameraRoot;
+    [SerializeField] private CinemachineVirtualCamera VCamera;
+
+
     private Vector3 _moveDirection = Vector3.zero;
     private Vector3 _oldMoveDirection = Vector3.zero;
 
-    private Rigidbody rb;
-    private InputManager _inputManager;
-    private bool hasAnim;
+    private Rigidbody _rb;
+    private Animator _anim;
+    private InputManager2 _inputManager;
     private int _xVelHash;
     private int _yVelHash;
+    private int _crouchHash;
 
+    private float _xRotation;
+    private bool _isCrouching;
+
+    private Vector3 _currentVelocity = Vector3.zero;
+
+    private bool _hasAnimator;
 
     private void Awake()
     {
-        _controller = GetComponent<CharacterController>();
+        _hasAnimator = TryGetComponent<Animator>(out _anim);
+        _rb = GetComponent<Rigidbody>();
         _anim = GetComponent<Animator>();
+        _inputManager = GetComponent<InputManager2>();
         _cameraTransform = UnityEngine.Camera.main.transform;
-       
+        VCamera = UnityEngine.Camera.main.GetComponent<CinemachineVirtualCamera>();
+
+        // Rigidbody'nin drag ve angularDrag de�erlerini kontrol edelim
+        _rb.drag = 0f;
+        _rb.angularDrag = 0.05f;
     }
+
     private void Start()
     {
         if (IsClient && IsOwner)
         {
-            hasAnim = TryGetComponent<Animator>(out _anim);
-            rb = GetComponent<Rigidbody>();
-            _inputManager = GetComponent<InputManager>();
+            _xVelHash = Animator.StringToHash("X-Vel");
+            _yVelHash = Animator.StringToHash("Y-Vel");
+            _crouchHash = Animator.StringToHash("Crouch");
 
-            _xVelHash = Animator.StringToHash("horizontal");
-            _yVelHash = Animator.StringToHash("vertical");
-            
-            transform.position = new Vector3(Random.Range(_defaulPositionRange.x, _defaulPositionRange.y), 0,
-                Random.Range(_defaulPositionRange.x, _defaulPositionRange.y));
-            
-            CameraManager.Instance.FallowPLayer(transform.Find("PlayerCameraRoot"));
+            transform.position = new Vector3(Random.Range(_defaultPositionRange.x, _defaultPositionRange.y), 0,
+                Random.Range(_defaultPositionRange.x, _defaultPositionRange.y));
+
+            CameraRoot = transform.Find("Skeleton/Hips/Spine/Chest/UpperChest/Neck/Head/Left_Eye/CameraRoot");
+            CameraManager.Instance.FallowPLayer(CameraRoot);
         }
-        
     }
 
     private void Update()
     {
-        if (IsClient && IsOwner) 
+        if (IsClient && IsOwner)
         {
             Cursor.visible = false;
-            ClientInput();
+            HandleInput();
+            HandleCrouch();
         }
 
-        ClientMoveAndRotate();
-        ClientVisuals();
-        
+        MoveAndRotate();
     }
 
     private void FixedUpdate()
@@ -92,139 +101,143 @@ public class PlayerControl : NetworkBehaviour
         {
             if (_networkPlayerState.Value == PlayerState.Attack && ActiveMeleeActionKey())
             {
-                CheckMeleeAttack( _melee.transform, Vector3 .up);
+                PerformMeleeAttack(_melee.transform, Vector3.up);
             }
         }
     }
 
-    private void CheckMeleeAttack(Transform melee, Vector3 aimDirection)
+    private void LateUpdate()
     {
-        RaycastHit _hit;
+        CamMovements(); 
+    }
 
-        int _layermask = LayerMask.GetMask("Player");
+    private void PerformMeleeAttack(Transform melee, Vector3 aimDirection)
+    {
+        RaycastHit hit;
+        int layermask = LayerMask.GetMask("Player");
 
-        if (Physics.Raycast(melee.position, melee.transform.TransformDirection(aimDirection), out _hit,
-                _minMeleeDistance, _layermask))
+        if (Physics.Raycast(melee.position, melee.transform.TransformDirection(aimDirection), out hit, _minMeleeDistance, layermask))
         {
-            Debug.DrawRay(melee.position,melee.transform.TransformDirection(aimDirection)*_minMeleeDistance,Color.yellow);
+            Debug.DrawRay(melee.position, melee.transform.TransformDirection(aimDirection) * _minMeleeDistance, Color.yellow);
 
-            var _playerHit = _hit.transform.GetComponent<NetworkObject>();
-            if (_playerHit != null)
+            var playerHit = hit.transform.GetComponent<PlayerControl>();
+            if (playerHit != null)
             {
-                UpdateHealthServerRpc(10, _playerHit.OwnerClientId);
+                UpdateHealthServerRpc(10, playerHit.OwnerClientId);
             }
         }
         else
         {
-            Debug.DrawRay(melee.position,melee.transform.TransformDirection(aimDirection)*_minMeleeDistance,Color.red);
+            Debug.DrawRay(melee.position, melee.transform.TransformDirection(aimDirection) * _minMeleeDistance, Color.red);
         }
     }
-    
-    private void ClientInput()
+
+    private void HandleInput()
     {
-        _moveDirection = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
-        _moveDirection = transform.TransformDirection(_moveDirection);
-        _moveDirection *= _walkSpeed;
-        _moveDirection.y -= gravity * Time.deltaTime;
-        _moveDirection = _cameraTransform.forward * _moveDirection.z + _cameraTransform.right * _moveDirection.x;
-        _moveDirection.y = 0f;
-        _controller.Move(_moveDirection * Time.deltaTime);
-        
-        
-        // forward & backward direction
-        // Vector3 direction = transform.TransformDirection(Vector3.forward);
-         float forwardInput = Input.GetAxis("Vertical");
-        // Vector3 inputPosition = direction * forwardInput;
+        float targetSpeed = _inputManager.Run ? _runSpeedOffset : _walkSpeed;
 
-        // change animation states
-        if (forwardInput == 0)
-            UpdatePlayerStateServerRpc(PlayerState.Idle);
-        else if (!ActiveRunningActionKey() && forwardInput > 0 && forwardInput <= 1)
-            UpdatePlayerStateServerRpc(PlayerState.Walk);
-        else if (ActiveRunningActionKey() && forwardInput > 0 && forwardInput <= 1)
-        {
-            //inputPosition = direction * _runSpeedOffset;
-            UpdatePlayerStateServerRpc(PlayerState.Run);
-        }
-        else if (forwardInput < 0)
-            UpdatePlayerStateServerRpc(PlayerState.ReverseWalk);
+        Vector3 moveDirection = new Vector3(_inputManager.Move.x, 0f, _inputManager.Move.y).normalized;
+        Vector3 worldMoveDirection = _cameraTransform.TransformDirection(moveDirection);
 
-        if (ActiveMeleeActionKey() && forwardInput == 0)
-        {
-            UpdatePlayerStateServerRpc(PlayerState.Attack);
-            return;
-        }
+        Vector3 targetVelocity = worldMoveDirection * targetSpeed;
 
-        if (_oldMoveDirection != _moveDirection)
+        _rb.velocity = new Vector3(targetVelocity.x, _rb.velocity.y, targetVelocity.z);
+
+        float currentXVel = Mathf.Lerp(_anim.GetFloat(_xVelHash), _inputManager.Move.x * targetSpeed, 0.1f);
+        float currentYVel = Mathf.Lerp(_anim.GetFloat(_yVelHash), _inputManager.Move.y * targetSpeed, 0.1f);
+
+
+        _anim.SetFloat(_xVelHash, currentXVel);
+        _anim.SetFloat(_yVelHash, currentYVel);
+
+
+
+        //if (currentYVel == 0 && currentXVel == 0)    
+        //{
+        //    UpdatePlayerStateServerRpc(PlayerState.Idle);
+        //}
+        //else if (!_inputManager.Run && currentYVel > 0)
+        //{
+        //    UpdatePlayerStateServerRpc(PlayerState.Walk);
+        //}
+        //else if (_inputManager.Run && currentYVel > 5)
+        //{
+        //    UpdatePlayerStateServerRpc(PlayerState.Run);
+        //}
+        //else if (currentYVel < 0)
+        //{
+        //    UpdatePlayerStateServerRpc(PlayerState.ReverseWalk);
+        //}
+
+
+        if (_oldMoveDirection != moveDirection)
         {
-            _oldMoveDirection = _moveDirection;
-            UpdateClientPositionAndRotationServerRpc(_moveDirection);
+            _oldMoveDirection = moveDirection;
+            UpdateClientPositionAndRotationServerRpc(moveDirection);
         }
     }
 
-    private void ClientMoveAndRotate()
+    private void HandleCrouch() => _anim.SetBool(_crouchHash, _inputManager.Crouch);
+
+    private void CamMovements()
+    {
+        if (!_hasAnimator || CameraRoot == null) return;
+
+        var Mouse_X = _inputManager.Look.x;
+        var Mouse_Y = _inputManager.Look.y;
+
+        if (VCamera != null)
+        {
+            Transform virtualCameraTransform = VCamera.transform;
+            virtualCameraTransform.position = CameraRoot.position;
+
+            _xRotation -= Mouse_Y * MouseSensitivity * Time.smoothDeltaTie;
+            _xRotation = Mathf.Clamp(_xRotation, UpperLimit, BottomLimit);
+
+            Quaternion targetRotation = Quaternion.Euler(0, virtualCameraTransform.eulerAngles.y, 0);
+            _rb.MoveRotation(Quaternion.Slerp(_rb.rotation, targetRotation, RotationSpeed * Time.deltaTime));
+
+            virtualCameraTransform.localRotation = Quaternion.Euler(_xRotation, 0, 0);
+        }
+    }
+
+
+
+    private void MoveAndRotate()
     {
         if (_networkPositionDirection.Value != Vector3.zero)
         {
-            _controller.SimpleMove(_networkPositionDirection.Value);
+            _rb.velocity = _networkPositionDirection.Value;
         }
+
         if (_networkRotationDirection.Value != Vector3.zero)
         {
-            transform.Rotate(_networkRotationDirection.Value, Space.World);
+            Quaternion deltaRotation = Quaternion.Euler(_networkRotationDirection.Value * Time.fixedDeltaTime);
+            _rb.MoveRotation(_rb.rotation * deltaRotation);
         }
     }
-    private void ClientVisuals()
-    {
-        if (_networkPlayerState.Value == PlayerState.Walk)
-        {
-            _anim.SetFloat("Walk", 1);
-        } else if (_networkPlayerState.Value == PlayerState.ReverseWalk)
-        {
-            _anim.SetFloat("Walk", -1);
-        } else if(_networkPlayerState.Value == PlayerState.Run)
-        {
-            _anim.SetFloat("Walk", 1);
-        }
-        else
-        {
-            _anim.SetFloat("Walk", 0);
-        }
 
-        if (_networkPlayerState.Value == PlayerState.Attack) 
-        {
-
-            _anim.SetTrigger("Attack");
-        }
-
-    }
-
-    private static bool ActiveRunningActionKey()
-    {
-        return Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-    }
-
-    private static bool ActiveMeleeActionKey()
+    private bool ActiveMeleeActionKey()
     {
         return Input.GetKey(KeyCode.Space);
     }
 
     [ServerRpc]
-    public void UpdateClientPositionAndRotationServerRpc(Vector3 newPosition)
+    private void UpdateClientPositionAndRotationServerRpc(Vector3 newPosition)
     {
         _networkPositionDirection.Value = newPosition;
     }
 
-    [ServerRpc]
-    public void UpdatePlayerStateServerRpc(PlayerState state)
-    {
-        _networkPlayerState.Value = state;
-    }
+    //[ServerRpc]
+    //private void UpdatePlayerStateServerRpc(PlayerState state)
+    //{
+    //    _networkPlayerState.Value = state;
+    //}
 
     [ServerRpc]
-    public void UpdateHealthServerRpc(int damage, ulong clientId)
+    private void UpdateHealthServerRpc(int damage, ulong clientId)
     {
-        var clientWithDamage = NetworkManager.Singleton.ConnectedClients[clientId].PlayerObject
-            .GetComponent<PlayerControl>();
+        var clientWithDamage = NetworkManager.Singleton.ConnectedClients[clientId].PlayerObject.GetComponent<PlayerControl>();
 
         if (clientWithDamage != null && clientWithDamage._networkPlayerHealth.Value > 0)
         {
@@ -241,11 +254,12 @@ public class PlayerControl : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void NotifyHealthChangedClientRpc(int Damage, ClientRpcParams clientRpcParams = default)
+    private void NotifyHealthChangedClientRpc(int damage, ClientRpcParams clientRpcParams = default)
     {
         if (IsOwner) return;
-        
-        Debug.Log(($"Client got melee {Damage} "));
-    }
 
+        Debug.Log($"Client received {damage} damage");
+    }
 }
+
+

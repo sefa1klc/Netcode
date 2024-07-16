@@ -1,6 +1,5 @@
 ﻿using UnityEngine;
 using Cinemachine;
-using InputSystem;
 
 namespace Camera
 {
@@ -9,7 +8,7 @@ namespace Camera
         [SerializeField] private float _clampAngle = 80f;
         [SerializeField] private float _horizontalSpeed = 10f;
         [SerializeField] private float _verticalSpeed = 10f;
-        
+
         private InputManager _inInputManager;
         private Vector3 _startingRotations;
 
@@ -25,12 +24,11 @@ namespace Camera
             {
                 if (stage == CinemachineCore.Stage.Aim)
                 {
-                    if (_startingRotations == null) _startingRotations = transform.localRotation.eulerAngles;
                     Vector2 deltaInput = _inInputManager.GetMouseDelta();
-                    _startingRotations.x += deltaInput.x * _verticalSpeed * Time.deltaTime;
-                    _startingRotations.y += deltaInput.y *_horizontalSpeed * Time.deltaTime;
+                    _startingRotations.x += deltaInput.x * _horizontalSpeed * deltaTime;
+                    _startingRotations.y -= deltaInput.y * _verticalSpeed * deltaTime;
                     _startingRotations.y = Mathf.Clamp(_startingRotations.y, -_clampAngle, _clampAngle);
-                    state.RawOrientation = Quaternion.Euler(-_startingRotations.y, _startingRotations.x , 0f);
+                    state.RawOrientation = Quaternion.Euler(_startingRotations.y, _startingRotations.x, 0f);
                 }
             }
         }
