@@ -16,6 +16,7 @@ public class PlayerControl : NetworkBehaviour
         Attack
     }
 
+    //[SerializeField] private float AnimBlendSpeed = 8.9f;
     [SerializeField] private float MouseSensitivity = 21.9f;
     [SerializeField] private float _walkSpeed = 7.0f;  
     [SerializeField] private float _runSpeedOffset = 4.0f;  
@@ -35,6 +36,12 @@ public class PlayerControl : NetworkBehaviour
     [SerializeField] private Transform CameraRoot;
     [SerializeField] private CinemachineVirtualCamera VCamera;
 
+    [SerializeField, Range(10, 500)] private float JumpFactor = 260f;
+    [SerializeField] private float Dis2Ground = 0.8f;
+    [SerializeField] private LayerMask GroundCheck;
+
+
+    //[SerializeField] private float AirResistance = 0.8f;
 
     private Vector3 _moveDirection = Vector3.zero;
     private Vector3 _oldMoveDirection = Vector3.zero;
@@ -44,7 +51,12 @@ public class PlayerControl : NetworkBehaviour
     private InputManager2 _inputManager;
     private int _xVelHash;
     private int _yVelHash;
+    private int _zVelHash;
     private int _crouchHash;
+    private int _jumpHash;
+    private int _groundHash;
+    private int _fallingHash;
+
 
     private float _xRotation;
     private bool _isCrouching;
@@ -52,6 +64,7 @@ public class PlayerControl : NetworkBehaviour
     private Vector3 _currentVelocity = Vector3.zero;
 
     private bool _hasAnimator;
+    private bool _grounded = false;
 
     private void Awake()
     {
@@ -71,9 +84,7 @@ public class PlayerControl : NetworkBehaviour
     {
         if (IsClient && IsOwner)
         {
-            _xVelHash = Animator.StringToHash("X-Vel");
-            _yVelHash = Animator.StringToHash("Y-Vel");
-            _crouchHash = Animator.StringToHash("Crouch");
+            AnimatorHashes();
 
             transform.position = new Vector3(Random.Range(_defaultPositionRange.x, _defaultPositionRange.y), 0,
                 Random.Range(_defaultPositionRange.x, _defaultPositionRange.y));
@@ -83,6 +94,18 @@ public class PlayerControl : NetworkBehaviour
         }
     }
 
+    void AnimatorHashes()
+    {
+
+        _jumpHash = Animator.StringToHash("Jump");
+        _xVelHash = Animator.StringToHash("X-Vel");
+        _yVelHash = Animator.StringToHash("Y-Vel");
+        _zVelHash = Animator.StringToHash("Z-Vel");
+        _crouchHash = Animator.StringToHash("Crouch");
+        _groundHash = Animator.StringToHash("Grounded");
+        _fallingHash = Animator.StringToHash("Falling");
+    }
+
     private void Update()
     {
         if (IsClient && IsOwner)
@@ -90,10 +113,13 @@ public class PlayerControl : NetworkBehaviour
             Cursor.visible = false;
             HandleInput();
             HandleCrouch();
+            HandleJump();
+            SampleGround();
         }
 
         MoveAndRotate();
     }
+
 
     private void FixedUpdate()
     {
@@ -125,16 +151,18 @@ public class PlayerControl : NetworkBehaviour
             {
                 UpdateHealthServerRpc(10, playerHit.OwnerClientId);
             }
-        }
+        }                                             
         else
         {
             Debug.DrawRay(melee.position, melee.transform.TransformDirection(aimDirection) * _minMeleeDistance, Color.red);
         }
-    }
+    }                                                                                                                                                                                                                      
 
     private void HandleInput()
     {
+        if (!_hasAnimator) return;
         float targetSpeed = _inputManager.Run ? _runSpeedOffset : _walkSpeed;
+        if (_inputManager.Move == Vector2.zero) targetSpeed = 0;
 
         Vector3 moveDirection = new Vector3(_inputManager.Move.x, 0f, _inputManager.Move.y).normalized;
         Vector3 worldMoveDirection = _cameraTransform.TransformDirection(moveDirection);
@@ -151,25 +179,6 @@ public class PlayerControl : NetworkBehaviour
         _anim.SetFloat(_yVelHash, currentYVel);
 
 
-
-        //if (currentYVel == 0 && currentXVel == 0)    
-        //{
-        //    UpdatePlayerStateServerRpc(PlayerState.Idle);
-        //}
-        //else if (!_inputManager.Run && currentYVel > 0)
-        //{
-        //    UpdatePlayerStateServerRpc(PlayerState.Walk);
-        //}
-        //else if (_inputManager.Run && currentYVel > 5)
-        //{
-        //    UpdatePlayerStateServerRpc(PlayerState.Run);
-        //}
-        //else if (currentYVel < 0)
-        //{
-        //    UpdatePlayerStateServerRpc(PlayerState.ReverseWalk);
-        //}
-
-
         if (_oldMoveDirection != moveDirection)
         {
             _oldMoveDirection = moveDirection;
@@ -178,6 +187,47 @@ public class PlayerControl : NetworkBehaviour
     }
 
     private void HandleCrouch() => _anim.SetBool(_crouchHash, _inputManager.Crouch);
+
+    private void HandleJump()
+    {
+        if (!_hasAnimator) return;
+        if (!_inputManager.Jump) return;
+        if (!_grounded) return;
+        _anim.SetTrigger(_jumpHash);
+
+    }
+
+    public void JumpAddForce()
+    {
+        _rb.AddForce(-_rb.velocity.y * Vector3.up, ForceMode.VelocityChange);
+        _rb.AddForce(Vector3.up * JumpFactor, ForceMode.Impulse);
+        _anim.ResetTrigger(_jumpHash);
+    }
+
+    private void SampleGround()
+    {
+        if (!_hasAnimator) return;
+
+        RaycastHit hitInfo;
+        if (Physics.Raycast(_rb.worldCenterOfMass, Vector3.down, out hitInfo, Dis2Ground + 0.1f, GroundCheck))
+        {
+            _grounded = true;
+            SetAnimationGrounding();
+            return;
+        }
+        _grounded = false;
+        _anim.SetFloat(_zVelHash, _rb.velocity.y);
+        SetAnimationGrounding();
+        return;
+    }
+
+    private void SetAnimationGrounding()
+    {
+        //_anim.SetBool(_fallingHash, !_grounded);
+        _anim.SetBool(_groundHash, _grounded);
+    }
+
+
 
     private void CamMovements()
     {
@@ -191,14 +241,16 @@ public class PlayerControl : NetworkBehaviour
             Transform virtualCameraTransform = VCamera.transform;
             virtualCameraTransform.position = CameraRoot.position;
 
-            _xRotation -= Mouse_Y * MouseSensitivity * Time.smoothDeltaTie;
+            _xRotation -= Mouse_Y * MouseSensitivity * Time.smoothDeltaTime;
             _xRotation = Mathf.Clamp(_xRotation, UpperLimit, BottomLimit);
 
             Quaternion targetRotation = Quaternion.Euler(0, virtualCameraTransform.eulerAngles.y, 0);
             _rb.MoveRotation(Quaternion.Slerp(_rb.rotation, targetRotation, RotationSpeed * Time.deltaTime));
 
             virtualCameraTransform.localRotation = Quaternion.Euler(_xRotation, 0, 0);
+            _rb.MoveRotation(_rb.rotation * Quaternion.Euler(0, Mouse_X * MouseSensitivity * Time.smoothDeltaTime,0));
         }
+
     }
 
 
