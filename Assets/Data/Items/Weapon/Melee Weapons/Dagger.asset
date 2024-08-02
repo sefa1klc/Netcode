@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cae07765043e4b4d8e337e6be152828, type: 3}
+  m_Name: Dagger
+  m_EditorClassIdentifier: 
+  _itemName: Dagger
+  _itemIcon: {fileID: 21300000, guid: 27d02af2ed8ff564eaeecf5dd1216977, type: 3}
+  _itemDescription: ' A Dagger.'
+  _itemID: 0
+  _weaponModel: {fileID: 1907699821369054180, guid: 00def5e3db948144d96a127e66dc9b27, type: 3}
+  StrenghtREQ: 10
+  dexREQ: 10
+  intREQ: 0
+  faithREQ: 0
+  _physicalDamage: 25
+  _magicDamage: 0
+  _fireDamage: 0
+  _holyDamage: 0
+  _lightningDamage: 0
+  _poiseDamage: 10
+  _baseStaminaCost: 5

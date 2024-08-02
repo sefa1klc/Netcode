@@ -1,19 +1,18 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Interactions;
-
 
 public class InputManager : Singleton<InputManager>
 {
+    public PlayerManager _playerManager;
     [SerializeField] private PlayerInput PlayerInput;
+    [SerializeField] private float _runningStaminaCost = 2;
     PlayerAcitons _acitons;
 
     public Vector2 Move { get; private set; }
     public Vector2 Look { get; private set; }
     public bool Run { get; private set; }
     public bool Jump { get; set; }
-
 
     [Header("Movement Settings")]
     public bool analogMovement;
@@ -63,11 +62,16 @@ public class InputManager : Singleton<InputManager>
     {
         Run = context.ReadValueAsButton();
     }
+
     private void onJump(InputAction.CallbackContext context)
     {
         Jump = context.ReadValueAsButton();
     }
 
+    private void Update()
+    {
+        RunnigControl();
+    }
 
     private void OnEnable()
     {
@@ -82,5 +86,30 @@ public class InputManager : Singleton<InputManager>
     public Vector2 GetMouseDelta()
     {
         return _acitons.Player.Look.ReadValue<Vector2>();
+    }
+
+    public void RunnigControl()
+    {
+
+        if (_playerManager == null)
+        {
+            return;
+        }
+
+        if (Run && _playerManager._characterNetworkManager.currentStamina.Value > 1)
+        {
+            _playerManager._characterNetworkManager.isRunning.Value = true;
+            _playerManager._characterNetworkManager.currentStamina.Value -= _runningStaminaCost * Time.deltaTime;
+        }
+        else
+        {
+            _playerManager._characterNetworkManager.isRunning.Value = false;
+        }
+
+        if (_playerManager._characterNetworkManager.isRunning.Value)
+        {
+            Run = true;
+        }else
+        { Run = false; }  
     }
 }

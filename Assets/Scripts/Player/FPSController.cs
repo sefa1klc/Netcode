@@ -15,7 +15,7 @@ using UnityEngine.InputSystem;
 using Unity.Netcode;
 
 
-[RequireComponent(typeof(CharacterController))]
+[RequireComponent(typeof(CharacterController))] 
 
 [RequireComponent(typeof(NetworkObject))]
 public class FirstPersonController : NetworkBehaviour
@@ -25,9 +25,7 @@ public class FirstPersonController : NetworkBehaviour
     public float SprintSpeed = 5.335f;
     [Range(0.0f, 0.3f)] public float RotationSmoothTime = 0.12f;
     public float SpeedChangeRate = 10.0f;
-    public AudioClip LandingAudioClip;
-    public AudioClip[] FootstepAudioClips;
-    [Range(0, 1)] public float FootstepAudioVolume = 0.5f;
+    
 
     [Space(10)]
     public float JumpHeight = 1.2f;
@@ -52,7 +50,7 @@ public class FirstPersonController : NetworkBehaviour
     private float _cameraPitch;
     private float _speed;
     private float _animationBlend;
-    private float _targetRotation = 0.0f;
+    //private float _targetRotation = 0.0f;
     private float _rotationVelocity;
     private float _verticalVelocity;
     private float _terminalVelocity = 53.0f;
@@ -89,6 +87,9 @@ public class FirstPersonController : NetworkBehaviour
 
     private bool _hasAnimator;
 
+    [HideInInspector] public CharacterNetworkManager _characterNetworkManager;
+    [HideInInspector] public PlayerStatManager _playerStatManager;
+
 
 
     public override void OnNetworkSpawn()
@@ -108,10 +109,26 @@ public class FirstPersonController : NetworkBehaviour
     {
         if (IsOwner)
         {
-            _CameraRoot = transform.Find("PlayerCameraRoot");
-            CameraManager.Instance.FallowPLayer(_CameraRoot);
+            Transform[] children = GetComponentsInChildren<Transform>(true); // True, gizli objeleri de arar
+            foreach (Transform child in children)
+            {
+                if (child.name == "PlayerCameraRoot")
+                {
+                    _CameraRoot = child;
+                    break;
+                }
+            }
+
+            if (_CameraRoot != null)
+            {
+                CameraManager.Instance.FallowPLayer(_CameraRoot);
+            }
+            else
+            {
+                Debug.LogError("PlayerCameraRoot bulunamadý.");
+            }
         }
-        
+
 
         AssignAnimationIDs();
 
@@ -126,6 +143,7 @@ public class FirstPersonController : NetworkBehaviour
             JumpAndGravity();
             GroundedCheck();
             HandleInput();
+            //_input.RunnigControl();
         }
     }
 
@@ -162,7 +180,6 @@ public class FirstPersonController : NetworkBehaviour
             _animator.SetBool(_animIDGrounded, Grounded);
         }
     }
-
 
 
     private void HandleInput()
@@ -215,6 +232,11 @@ public class FirstPersonController : NetworkBehaviour
         }
     }
 
+    [ServerRpc(RequireOwnership = false)]
+    public void UpdateClientPositionAndRotationServerRpc(Vector3 newPosition)
+    {
+        _networkPositionDirection.Value = newPosition;
+    }
 
     private void JumpAndGravity()
     {
@@ -289,42 +311,6 @@ public class FirstPersonController : NetworkBehaviour
         else Gizmos.color = transparentRed;
 
         Gizmos.DrawSphere(new Vector3(transform.position.x, transform.position.y - GroundedOffset, transform.position.z), GroundedRadius);
-    }
-
-    private void OnFootstep(AnimationEvent animationEvent)
-    {
-        if (animationEvent.animatorClipInfo.weight > 0.5f)
-        {
-            if (FootstepAudioClips.Length > 0)
-            {
-                var index = Random.Range(0, FootstepAudioClips.Length);
-                AudioSource.PlayClipAtPoint(FootstepAudioClips[index], transform.TransformPoint(_controller.center), FootstepAudioVolume);
-            }
-        }
-    }
-
-    private void OnLand(AnimationEvent animationEvent)
-    {
-        if (animationEvent.animatorClipInfo.weight > 0.5f)
-        {
-            AudioSource.PlayClipAtPoint(LandingAudioClip, transform.TransformPoint(_controller.center), FootstepAudioVolume);
-        }
-    }
-
-    [ClientRpc]
-    private void UpdateClientPositionAndRotationClientRpc(Vector3 position, Vector3 rotation)
-    {
-        if (!IsOwner)
-        {
-            transform.position = position;
-            transform.rotation = Quaternion.Euler(rotation);
-        }
-    }
-
-    [ServerRpc(RequireOwnership = false)]
-    private void UpdateClientPositionAndRotationServerRpc(Vector3 newPosition)
-    {
-        _networkPositionDirection.Value = newPosition;
     }
 
 
