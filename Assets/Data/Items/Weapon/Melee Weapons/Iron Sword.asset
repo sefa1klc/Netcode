@@ -21,7 +21,7 @@ MonoBehaviour:
   dexREQ: 10
   intREQ: 0
   faithREQ: 0
-  _physicalDamage: 50
+  _physicalDamage: 10
   _magicDamage: 0
   _fireDamage: 0
   _holyDamage: 0
@@ -31,3 +31,4 @@ MonoBehaviour:
   _baseStaminaCost: 20
   _lightAttackStaminaCountMultiplier: 0.9
   _RB_Actions: {fileID: 11400000, guid: 03eedfc533f9d6642bfed2caf4f4dcc3, type: 2}
+  _RT_Action: {fileID: 11400000, guid: ca3c5cb46ed42dc43824414f813afcbd, type: 2}

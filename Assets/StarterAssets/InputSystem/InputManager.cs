@@ -17,9 +17,12 @@ public class InputManager : Singleton<InputManager>
     public bool Run { get; private set; }
     public bool Jump { get; set; }
     public bool Actions { get; set; }
+    public bool RT_Input { get; set; }
+    public bool hold_RT_Input { get; set; }
 
     [Header("Movement Settings")]
     public bool analogMovement;
+
 
     private InputActionMap _currentMap;
     private InputAction _moveAction;
@@ -28,6 +31,10 @@ public class InputManager : Singleton<InputManager>
     private InputAction _crouchAction;
     private InputAction _jumpAction;
     private InputAction _RB_Action;
+    private InputAction _RT_Action;
+    private InputAction hold_RT_Action;
+
+
 
     private void Awake()
     {
@@ -38,18 +45,24 @@ public class InputManager : Singleton<InputManager>
         _runAction = _currentMap.FindAction("Run");
         _jumpAction = _currentMap.FindAction("Jump");
         _RB_Action = _currentMap.FindAction("RB");
+        _RT_Action = _currentMap.FindAction("RT");
+        hold_RT_Action = _currentMap.FindAction("Hold RT");
 
         _moveAction.performed += onMove;
         _lookAction.performed += onLook;
         _runAction.performed += onRun;
         _jumpAction.performed += onJump;
         _RB_Action.performed += onAction;
+        _RT_Action.performed += onRT;
+        hold_RT_Action.performed += onHoldRT;
 
         _moveAction.canceled += onMove;
         _lookAction.canceled += onLook;
         _runAction.canceled += onRun;
         _jumpAction.canceled += onJump;
         _RB_Action.canceled += onAction;
+        _RT_Action.canceled += onRT;
+        hold_RT_Action.canceled += onHoldRT;
     }
 
     private void HideCursor()
@@ -81,10 +94,22 @@ public class InputManager : Singleton<InputManager>
         Actions = context.ReadValueAsButton();
     }
 
+    private void onRT(InputAction.CallbackContext context)
+    {
+        RT_Input = context.ReadValueAsButton();
+    }
+
+    private void onHoldRT(InputAction.CallbackContext context)
+    {
+        hold_RT_Input = context.ReadValueAsButton();
+    }
+
     private void Update()
     {
         RunnigControl();
         HandleAcitonInput();
+        handleRTInput();
+        handleChargedRTInput();
     }
 
     private void OnEnable()
@@ -139,6 +164,30 @@ public class InputManager : Singleton<InputManager>
 
             _playerManager._playerCombatManager.PerformWeaonBasedAction(_playerManager._playerInventoryManager._currentRightHandWeapon._RB_Actions,
                 _playerManager._playerInventoryManager._currentRightHandWeapon);
+        }
+    }
+
+    private void handleRTInput()
+    {
+        if (RT_Input)
+        {
+            RT_Input = false;
+
+            _playerManager._playerNetworkManager.SetCharacterActionHand(true);
+
+            _playerManager._playerCombatManager.PerformWeaonBasedAction(_playerManager._playerInventoryManager._currentRightHandWeapon._RT_Action,
+                _playerManager._playerInventoryManager._currentRightHandWeapon);
+        }
+    }
+
+    private void handleChargedRTInput()
+    {
+        if (_playerManager._isPerformingAction)
+        {
+            if (_playerManager._playerNetworkManager._isUsingRightHand.Value)
+            {
+                _playerManager._playerNetworkManager.isChargingAttack.Value = hold_RT_Input;
+            } 
         }
     }
 }

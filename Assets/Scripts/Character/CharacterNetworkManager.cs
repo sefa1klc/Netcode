@@ -23,6 +23,7 @@ public class CharacterNetworkManager : NetworkBehaviour
 
     [Header("Bools")]
     public NetworkVariable<bool> isRunning = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    public NetworkVariable<bool> isChargingAttack = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
     protected virtual void Awake()
     {
@@ -43,6 +44,11 @@ public class CharacterNetworkManager : NetworkBehaviour
                 currenthealth.Value = maxhealth.Value;
             }
         }
+    }
+
+    public void OnChargingAttackChanged(bool oldStatus, bool newStatus)
+    {
+        character._anim.SetBool("isChargingAttack", isChargingAttack.Value);
     }
 
     [ClientRpc]

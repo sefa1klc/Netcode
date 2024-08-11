@@ -67,14 +67,15 @@ public class TakeDamageEffect : InstantCharacterEffect
 
         _finalDamageDeath = Mathf.RoundToInt(_physicalDamage + _magicDamage + _fireDamage + _lighningDamage + _holyDamage);
 
-        if(_finalDamageDeath <= 0)
+        if (_finalDamageDeath <= 0)
         {
             _finalDamageDeath = 1;
         }
-
-        Debug.Log("Final Damage" + _finalDamageDeath);
+     
 
         character._playerNetworkManager.currenthealth.Value -= _finalDamageDeath;
+
+        Debug.Log("Final Damage" + _finalDamageDeath);
     }
 
     private void PlayDamageVFX(CharacterManager character)
@@ -97,30 +98,33 @@ public class TakeDamageEffect : InstantCharacterEffect
 
     private void PlayDirectioanlBasedDamageAnimation(CharacterManager character)
     {
+        if (!character.IsOwner) return;
+
         _poiseIsBroken = true;
         if(_angleHitFrom >= 145 && _angleHitFrom <= 180)
         {
-            _damageAnimation = character._characterAnimationsManager._hitForward_01;
+            _damageAnimation = character._characterAnimationsManager.GetRandomAnimationFromList(character._characterAnimationsManager._forwardDamage);
         }
         else if (_angleHitFrom <= -145 && _angleHitFrom >= -180)
         {
-            _damageAnimation = character._characterAnimationsManager._hitForward_01;
+            _damageAnimation = character._characterAnimationsManager.GetRandomAnimationFromList(character._characterAnimationsManager._forwardDamage);
         }
         else if (_angleHitFrom >= -45 && _angleHitFrom <= 45)
         {
-            _damageAnimation = character._characterAnimationsManager._hitBackward_01;
+            _damageAnimation = character._characterAnimationsManager.GetRandomAnimationFromList(character._characterAnimationsManager._backwardDamage);
         }
         else if (_angleHitFrom >= -144 && _angleHitFrom <= -45)
         {
-            _damageAnimation = character._characterAnimationsManager._hitLeft_01;
+            _damageAnimation = character._characterAnimationsManager.GetRandomAnimationFromList(character._characterAnimationsManager._leftDamage);
         }
         else if(_angleHitFrom >= 45 && _angleHitFrom <= 144)
         {
-            _damageAnimation = character._characterAnimationsManager._hitRight_01;
+            _damageAnimation = character._characterAnimationsManager.GetRandomAnimationFromList(character._characterAnimationsManager._rightDamage);
         }
 
         if(_poiseIsBroken)
         {
+            character._characterAnimationsManager._lastDamageAnimationPlayed = _damageAnimation;
             character._characterAnimationsManager.PlayTargetActionAnimation(_damageAnimation,true);
         }
     }

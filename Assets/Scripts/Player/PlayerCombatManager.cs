@@ -45,7 +45,6 @@ public class PlayerCombatManager : CharacterCombatManager
         }
 
         player._playerNetworkManager.currentStamina.Value -= Mathf.RoundToInt(staminaDeducted);
-        Debug.Log(player._playerNetworkManager.currentStamina.Value);
         
     }
 

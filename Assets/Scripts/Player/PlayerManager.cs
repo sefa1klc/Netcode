@@ -96,11 +96,59 @@ public class PlayerManager : CharacterManager
         //stats
         _playerNetworkManager.currenthealth.OnValueChanged += _playerNetworkManager.CheckHP;
 
+        //flags
+        _playerNetworkManager.isChargingAttack.OnValueChanged += _playerNetworkManager.OnChargingAttackChanged;
+
 
         //equipments
         _playerNetworkManager._currentRightHandWeaponID.OnValueChanged += _playerNetworkManager.OnCurrentRightHandWeaponIDChange;
         _playerNetworkManager._currentLeftHandWeaponID.OnValueChanged += _playerNetworkManager.OnCurrentLefttHandWeaponIDChange;
         _playerNetworkManager._currentWeaponBeingUse.OnValueChanged += _playerNetworkManager.OnCurrentWeaponBeingUsedIDChange;
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        base.OnNetworkDespawn();
+
+        NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnectedCallback;
+
+        if (IsOwner)
+        {
+            // InputManager'ýn hazýr olup olmadýðýný kontrol edin
+            if (InputManager.Instance == null)
+            {
+                Debug.LogError("InputManager instance is null.");
+                return;
+            }
+
+
+
+            _playerNetworkManager.vitality.OnValueChanged -= _playerNetworkManager.SetNewMaxHealtValue;
+            _playerNetworkManager.endurance.OnValueChanged -= _playerNetworkManager.SetNewMaxenduranceValue;
+
+            _playerNetworkManager.currenthealth.OnValueChanged -= PlayerUIManager.Instance.HudManager.SetNewHealtValue;
+            _playerNetworkManager.currentStamina.OnValueChanged -= PlayerUIManager.Instance.HudManager.SetNewStaminaValue;
+            _playerNetworkManager.currentStamina.OnValueChanged -= _playerStatManager.ResetRegenerateStaminaTimer;
+
+
+            _playerNetworkManager.maxhealth.Value = _playerStatManager.CalculateHealthBasedOnVitalityLevel(_playerNetworkManager.vitality.Value);
+            _playerNetworkManager.maxStamina.Value = _playerStatManager.CalculateStaminaBasedOnenduranceLevel(_playerNetworkManager.endurance.Value);
+            _playerNetworkManager.currenthealth.Value = _playerStatManager.CalculateHealthBasedOnVitalityLevel(_playerNetworkManager.vitality.Value);
+            _playerNetworkManager.currentStamina.Value = _playerStatManager.CalculateStaminaBasedOnenduranceLevel(_playerNetworkManager.endurance.Value);
+            PlayerUIManager.Instance.HudManager.SetMaxStaminaValue(_playerNetworkManager.maxStamina.Value);
+        }
+
+        //stats
+        _playerNetworkManager.currenthealth.OnValueChanged -= _playerNetworkManager.CheckHP;
+
+        //flags
+        _playerNetworkManager.isChargingAttack.OnValueChanged -= _playerNetworkManager.OnChargingAttackChanged;
+
+
+        //equipments
+        _playerNetworkManager._currentRightHandWeaponID.OnValueChanged -= _playerNetworkManager.OnCurrentRightHandWeaponIDChange;
+        _playerNetworkManager._currentLeftHandWeaponID.OnValueChanged -= _playerNetworkManager.OnCurrentLefttHandWeaponIDChange;
+        _playerNetworkManager._currentWeaponBeingUse.OnValueChanged -= _playerNetworkManager.OnCurrentWeaponBeingUsedIDChange;
     }
 
     public override IEnumerator ProcessDeathEvent(bool manuallySelectDeathAnimation = false)
