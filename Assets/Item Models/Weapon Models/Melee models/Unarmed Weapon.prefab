@@ -45,6 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a6465216c4795146baf2dd2dd4eec3c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _damageCollider: {fileID: 3065995014542898232}
   _physicalDamage: 0
   _magicDamage: 0
   _fireDamage: 0
@@ -52,6 +53,7 @@ MonoBehaviour:
   _holyDamage: 0
   _contactPoint: {x: 0, y: 0, z: 0}
   _characterCausingDamage: {fileID: 0}
+  _lightAttack_01_Modifier: 0
 --- !u!135 &3065995014542898232
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -67,7 +69,7 @@ SphereCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3

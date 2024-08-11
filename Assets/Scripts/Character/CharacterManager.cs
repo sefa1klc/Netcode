@@ -17,6 +17,9 @@ public class CharacterManager : NetworkBehaviour
     [HideInInspector] public PlayerNetworkManager _playerNetworkManager;
     [HideInInspector] public CharacterAffectManager _characterAffectManager;
     [HideInInspector] public CharacterAnimationsManager _characterAnimationsManager;
+    [HideInInspector] public CharacterCombatManager _characterCombatManager;
+    [HideInInspector] public CharacterSoundFXManager _characterSoundFXManager;
+
 
     protected virtual void Awake()
     {
@@ -25,6 +28,8 @@ public class CharacterManager : NetworkBehaviour
         _characterNetworkManager = GetComponent<CharacterNetworkManager>();
         _characterAffectManager = GetComponent<CharacterAffectManager>();
         _characterAnimationsManager = GetComponent<CharacterAnimationsManager>();
+        _characterCombatManager = GetComponent<CharacterCombatManager>();
+        _characterSoundFXManager = GetComponent<CharacterSoundFXManager>();
     }
 
 
@@ -33,12 +38,19 @@ public class CharacterManager : NetworkBehaviour
 
     }   
 
+    protected virtual void Start()
+    {
+        IgnoreMyOWnCollider();
+    }
+
     public virtual IEnumerator ProcessDeathEvent(bool manuallySelectDeathAnimation = false)
     {
        if(IsOwner)
        {
-            _characterNetworkManager.currenthealth.Value = 0;
+            _playerNetworkManager.currenthealth.Value = 0;
             _isDead.Value = true;
+
+            Debug.Log(_isDead.Value);
 
             if (!manuallySelectDeathAnimation)
             {
@@ -52,6 +64,28 @@ public class CharacterManager : NetworkBehaviour
     public virtual void ReviveCharacter()
     {
         _isDead.Value = true;
+    }
+
+    public virtual void IgnoreMyOWnCollider()
+    {
+        Collider _characterControlCollider = GetComponent<Collider>();   
+        Collider[] _damagableCharacterCollider = GetComponentsInChildren<Collider>();
+        List<Collider> _ignoreCollider = new List<Collider>();
+
+        foreach(var collider in _damagableCharacterCollider)
+        {
+            _ignoreCollider.Add(collider);
+        }
+
+        _ignoreCollider.Add(_characterControlCollider);
+
+        foreach(var collider in _ignoreCollider)
+        {
+            foreach(var otherCollider in _ignoreCollider)
+            {
+                Physics.IgnoreCollision(collider, otherCollider,true);
+            }
+        }
     }
 
 }

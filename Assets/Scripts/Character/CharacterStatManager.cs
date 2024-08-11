@@ -29,7 +29,7 @@ public class CharacterStatManager : MonoBehaviour
     {
         float health = 0;
 
-        health = vitality * 15;
+        health = vitality * 10;
 
         return Mathf.RoundToInt(health);
     }
@@ -47,20 +47,20 @@ public class CharacterStatManager : MonoBehaviour
         if (!_characterManager.IsOwner) return;
 
         
-        if (_characterManager._characterNetworkManager.isRunning.Value) return;
+        if (_characterManager._playerNetworkManager.isRunning.Value) return;
 
         _staminaRegenerationTimer += Time.deltaTime;
 
         if (_staminaRegenerationTimer >= _regenerationDelay)
         {
             
-            if (_characterManager._characterNetworkManager.currentStamina.Value < _characterManager._characterNetworkManager.maxStamina.Value)
+            if (_characterManager._playerNetworkManager.currentStamina.Value < _characterManager._playerNetworkManager.maxStamina.Value)
             {
                 _staminaTickTimer += Time.deltaTime;
                 if (_staminaTickTimer >= 0.1)
                 {
                     _staminaTickTimer = 0;
-                    _characterManager._characterNetworkManager.currentStamina.Value += _staminaRegenerationAmount;
+                    _characterManager._playerNetworkManager.currentStamina.Value += _staminaRegenerationAmount;
                 }
             }
         }

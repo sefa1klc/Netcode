@@ -56,6 +56,7 @@ public class NetworkUI : MonoBehaviour
          
             SpawnerController.Instance.SpawnObject();
         });
+
     }
 
     

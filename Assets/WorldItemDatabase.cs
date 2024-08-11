@@ -20,7 +20,7 @@ public class WorldItemDatabase : Singleton<WorldItemDatabase>
             Items.Add(weapon);
         }
 
-        for (var i = 0; i < Items.Count; i++)
+        for (int i = 0; i < Items.Count; i++)
         {
             Items[i]._itemID = i;
         }

@@ -89,8 +89,12 @@ public class FirstPersonController : NetworkBehaviour
 
     [HideInInspector] public CharacterNetworkManager _characterNetworkManager;
     [HideInInspector] public PlayerStatManager _playerStatManager;
+    [HideInInspector] public PlayerNetworkManager _playerNetworkManager;
 
-
+    private void Awake()
+    {
+        _playerNetworkManager = GetComponent<PlayerNetworkManager>();
+    }
 
     public override void OnNetworkSpawn()
     {
@@ -140,6 +144,7 @@ public class FirstPersonController : NetworkBehaviour
     {
         if (IsOwner)
         {
+            if (_playerNetworkManager.currenthealth.Value <= 0) return;
             JumpAndGravity();
             GroundedCheck();
             HandleInput();

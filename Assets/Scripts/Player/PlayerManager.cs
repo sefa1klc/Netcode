@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Netcode;
 
 public class PlayerManager : CharacterManager
 {
@@ -13,6 +14,7 @@ public class PlayerManager : CharacterManager
     [HideInInspector] public CharacterAnimationsManager CharacterAnimationsManager;
     [HideInInspector] public PlayerInventoryManager _playerInventoryManager;
     [HideInInspector] public PlayerEquipmentManager _playerEquipmentManager;
+     public PlayerCombatManager _playerCombatManager;
 
     protected override void Awake()
     {
@@ -24,7 +26,8 @@ public class PlayerManager : CharacterManager
         _playerNetworkManager = GetComponent<PlayerNetworkManager>();
         CharacterAnimationsManager = GetComponent<CharacterAnimationsManager>();
         _playerInventoryManager = GetComponent<PlayerInventoryManager>();
-        _playerEquipmentManager = GetComponent<PlayerEquipmentManager>();   
+        _playerEquipmentManager = GetComponent<PlayerEquipmentManager>();
+        _playerCombatManager = GetComponent<PlayerCombatManager>();
 
 
     }
@@ -40,9 +43,27 @@ public class PlayerManager : CharacterManager
         DebugMenu();
     }
 
+    private void OnClientConnectedCallback(ulong clientID)
+    {
+        WorldGameSesionManager.Instance.AddPlayerToActivePlayerList(this);
+
+        if (!IsServer && IsOwner)
+        {
+            foreach (var player in WorldGameSesionManager.Instance.players)
+            {
+                if(player != this)
+                {
+                    player.LoadOtherPlayerCharacterWhenJoiningServer();
+                }
+            }
+        }
+    }
+
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
+
+        NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnectedCallback;
 
         if (IsOwner)
         {
@@ -59,16 +80,17 @@ public class PlayerManager : CharacterManager
             _playerNetworkManager.vitality.OnValueChanged += _playerNetworkManager.SetNewMaxHealtValue;
             _playerNetworkManager.endurance.OnValueChanged += _playerNetworkManager.SetNewMaxenduranceValue;
 
+            Debug.Log(_playerNetworkManager.currenthealth.Value);
             _playerNetworkManager.currenthealth.OnValueChanged += PlayerUIManager.Instance.HudManager.SetNewHealtValue;
-            _characterNetworkManager.currentStamina.OnValueChanged += PlayerUIManager.Instance.HudManager.SetNewStaminaValue;
-            _characterNetworkManager.currentStamina.OnValueChanged += _playerStatManager.ResetRegenerateStaminaTimer;
+            _playerNetworkManager.currentStamina.OnValueChanged += PlayerUIManager.Instance.HudManager.SetNewStaminaValue;
+            _playerNetworkManager.currentStamina.OnValueChanged += _playerStatManager.ResetRegenerateStaminaTimer;
 
 
-            _characterNetworkManager.maxhealth.Value = _playerStatManager.CalculateHealthBasedOnVitalityLevel(_characterNetworkManager.vitality.Value);
-            _characterNetworkManager.maxStamina.Value = _playerStatManager.CalculateStaminaBasedOnenduranceLevel(_characterNetworkManager.endurance.Value);
-            _characterNetworkManager.currenthealth.Value = _playerStatManager.CalculateHealthBasedOnVitalityLevel(_characterNetworkManager.vitality.Value);
-            _characterNetworkManager.currentStamina.Value = _playerStatManager.CalculateStaminaBasedOnenduranceLevel(_characterNetworkManager.endurance.Value);
-            PlayerUIManager.Instance.HudManager.SetMaxStaminaValue(_characterNetworkManager.maxStamina.Value);
+            _playerNetworkManager.maxhealth.Value = _playerStatManager.CalculateHealthBasedOnVitalityLevel(_playerNetworkManager.vitality.Value);
+            _playerNetworkManager.maxStamina.Value = _playerStatManager.CalculateStaminaBasedOnenduranceLevel(_playerNetworkManager.endurance.Value);
+            _playerNetworkManager.currenthealth.Value = _playerStatManager.CalculateHealthBasedOnVitalityLevel(_playerNetworkManager.vitality.Value);
+            _playerNetworkManager.currentStamina.Value = _playerStatManager.CalculateStaminaBasedOnenduranceLevel(_playerNetworkManager.endurance.Value);
+            PlayerUIManager.Instance.HudManager.SetMaxStaminaValue(_playerNetworkManager.maxStamina.Value);
         }
 
         //stats
@@ -78,6 +100,7 @@ public class PlayerManager : CharacterManager
         //equipments
         _playerNetworkManager._currentRightHandWeaponID.OnValueChanged += _playerNetworkManager.OnCurrentRightHandWeaponIDChange;
         _playerNetworkManager._currentLeftHandWeaponID.OnValueChanged += _playerNetworkManager.OnCurrentLefttHandWeaponIDChange;
+        _playerNetworkManager._currentWeaponBeingUse.OnValueChanged += _playerNetworkManager.OnCurrentWeaponBeingUsedIDChange;
     }
 
     public override IEnumerator ProcessDeathEvent(bool manuallySelectDeathAnimation = false)
@@ -104,7 +127,15 @@ public class PlayerManager : CharacterManager
         }
     }
 
-    //DELETE LATER THÝS FOR DEBUG
+    public void LoadOtherPlayerCharacterWhenJoiningServer()
+    {
+        _playerNetworkManager.OnCurrentRightHandWeaponIDChange(0,_playerNetworkManager._currentRightHandWeaponID.Value);
+        _playerNetworkManager.OnCurrentLefttHandWeaponIDChange(0,_playerNetworkManager._currentLeftHandWeaponID.Value);
+
+        
+    }
+
+    //DELETE LATER THIS FOR DEBUG
     private void DebugMenu()
     {
         if (_respawnCharacter)

@@ -15,8 +15,8 @@ MonoBehaviour:
   _itemName: Dagger
   _itemIcon: {fileID: 21300000, guid: 27d02af2ed8ff564eaeecf5dd1216977, type: 3}
   _itemDescription: ' A Dagger.'
-  _itemID: 0
-  _weaponModel: {fileID: 1907699821369054180, guid: 00def5e3db948144d96a127e66dc9b27, type: 3}
+  _itemID: 2
+  _weaponModel: {fileID: 2812564799123323137, guid: 00def5e3db948144d96a127e66dc9b27, type: 3}
   StrenghtREQ: 10
   dexREQ: 10
   intREQ: 0

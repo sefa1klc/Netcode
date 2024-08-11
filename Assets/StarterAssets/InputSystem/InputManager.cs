@@ -1,4 +1,6 @@
 using System;
+using Unity.Netcode;
+using Unity.Services.Qos.V2.Models;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -7,12 +9,14 @@ public class InputManager : Singleton<InputManager>
     public PlayerManager _playerManager;
     [SerializeField] private PlayerInput PlayerInput;
     [SerializeField] private float _runningStaminaCost = 2;
+
     PlayerAcitons _acitons;
 
     public Vector2 Move { get; private set; }
     public Vector2 Look { get; private set; }
     public bool Run { get; private set; }
     public bool Jump { get; set; }
+    public bool Actions { get; set; }
 
     [Header("Movement Settings")]
     public bool analogMovement;
@@ -23,6 +27,7 @@ public class InputManager : Singleton<InputManager>
     private InputAction _runAction;
     private InputAction _crouchAction;
     private InputAction _jumpAction;
+    private InputAction _RB_Action;
 
     private void Awake()
     {
@@ -32,16 +37,19 @@ public class InputManager : Singleton<InputManager>
         _lookAction = _currentMap.FindAction("Look");
         _runAction = _currentMap.FindAction("Run");
         _jumpAction = _currentMap.FindAction("Jump");
+        _RB_Action = _currentMap.FindAction("RB");
 
         _moveAction.performed += onMove;
         _lookAction.performed += onLook;
         _runAction.performed += onRun;
         _jumpAction.performed += onJump;
+        _RB_Action.performed += onAction;
 
         _moveAction.canceled += onMove;
         _lookAction.canceled += onLook;
         _runAction.canceled += onRun;
         _jumpAction.canceled += onJump;
+        _RB_Action.canceled += onAction;
     }
 
     private void HideCursor()
@@ -68,14 +76,22 @@ public class InputManager : Singleton<InputManager>
         Jump = context.ReadValueAsButton();
     }
 
+    private void onAction(InputAction.CallbackContext context)
+    {
+        Actions = context.ReadValueAsButton();
+    }
+
     private void Update()
     {
         RunnigControl();
+        HandleAcitonInput();
     }
 
     private void OnEnable()
     {
         _currentMap.Enable();
+        
+
     }
 
     private void OnDisable()
@@ -96,20 +112,33 @@ public class InputManager : Singleton<InputManager>
             return;
         }
 
-        if (Run && _playerManager._characterNetworkManager.currentStamina.Value > 1)
+        if (Run && _playerManager._playerNetworkManager.currentStamina.Value > 1)
         {
-            _playerManager._characterNetworkManager.isRunning.Value = true;
-            _playerManager._characterNetworkManager.currentStamina.Value -= _runningStaminaCost * Time.deltaTime;
+            _playerManager._playerNetworkManager.isRunning.Value = true;
+            _playerManager._playerNetworkManager.currentStamina.Value -= _runningStaminaCost * Time.deltaTime;
         }
         else
         {
-            _playerManager._characterNetworkManager.isRunning.Value = false;
+            _playerManager._playerNetworkManager.isRunning.Value = false;
         }
 
-        if (_playerManager._characterNetworkManager.isRunning.Value)
+        if (_playerManager._playerNetworkManager.isRunning.Value)
         {
             Run = true;
         }else
         { Run = false; }  
+    }
+
+    public void HandleAcitonInput()
+    {
+        if (Actions)
+        {
+            Actions = false;
+
+            _playerManager._playerNetworkManager.SetCharacterActionHand(true);
+
+            _playerManager._playerCombatManager.PerformWeaonBasedAction(_playerManager._playerInventoryManager._currentRightHandWeapon._RB_Actions,
+                _playerManager._playerInventoryManager._currentRightHandWeapon);
+        }
     }
 }

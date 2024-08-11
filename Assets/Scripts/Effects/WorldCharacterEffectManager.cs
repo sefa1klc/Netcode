@@ -8,6 +8,9 @@ public class WorldCharacterEffectManager : Singleton<WorldCharacterEffectManager
 
     [Header("Damage")]
     public TakeDamageEffect TakeDamageEffect;
+
+    [Header("VFX")]
+    public GameObject _bloodSplatterVFX;
     private void Awake()
     {
         GenerateEffect();

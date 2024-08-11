@@ -23,7 +23,7 @@ public class TakeDamageEffect : InstantCharacterEffect
 
     [Header("Poise")]
     public float _poiseDamage;
-    public bool _poiseIsBroken = false;
+    public bool _poiseIsBroken = false; //for stunned
 
     [Header("Damage Animations")]
     public bool _playDamageAnimation = true;
@@ -42,14 +42,18 @@ public class TakeDamageEffect : InstantCharacterEffect
     public override void ProcessEffect(CharacterManager character)
     {
         base.ProcessEffect(character);
-
         //if character will be dead, no additional damage effect should be processed
-        if (character._isDead.Value)
-        {
-            return;
-        }
+        if (character._isDead.Value) return;
 
         CalculateDamage(character);
+        PlayDirectioanlBasedDamageAnimation(character);
+        PlayDamageVFX(character);
+        PlayDamageSFX(character);
+
+        if (character._isDead.Value)
+        {
+            PlayDeathSFX(character);
+        }
 
     }
 
@@ -61,7 +65,6 @@ public class TakeDamageEffect : InstantCharacterEffect
 
         }
 
-
         _finalDamageDeath = Mathf.RoundToInt(_physicalDamage + _magicDamage + _fireDamage + _lighningDamage + _holyDamage);
 
         if(_finalDamageDeath <= 0)
@@ -72,5 +75,53 @@ public class TakeDamageEffect : InstantCharacterEffect
         Debug.Log("Final Damage" + _finalDamageDeath);
 
         character._playerNetworkManager.currenthealth.Value -= _finalDamageDeath;
+    }
+
+    private void PlayDamageVFX(CharacterManager character)
+    {
+        character._characterAffectManager.PlayBloodSplatterVFX(_contactPoint);
+    }
+
+    private void PlayDamageSFX(CharacterManager character)
+    {
+        AudioClip _physicalDamageSFX = WorldSoundFxMAnager.Instance.ChooseRandomSFXFromArray(WorldSoundFxMAnager.Instance._physicalDamage);
+        AudioClip _deathSFX = WorldSoundFxMAnager.Instance.ChooseRandomSFXFromArray(WorldSoundFxMAnager.Instance._deathSounds);
+        character._characterSoundFXManager.PlaySoundFX(_physicalDamageSFX);
+    }
+
+    private void PlayDeathSFX(CharacterManager character)
+    {
+        AudioClip _deathSFX = WorldSoundFxMAnager.Instance.ChooseRandomSFXFromArray(WorldSoundFxMAnager.Instance._deathSounds);
+        character._characterSoundFXManager.PlaySoundFX(_deathSFX);
+    }
+
+    private void PlayDirectioanlBasedDamageAnimation(CharacterManager character)
+    {
+        _poiseIsBroken = true;
+        if(_angleHitFrom >= 145 && _angleHitFrom <= 180)
+        {
+            _damageAnimation = character._characterAnimationsManager._hitForward_01;
+        }
+        else if (_angleHitFrom <= -145 && _angleHitFrom >= -180)
+        {
+            _damageAnimation = character._characterAnimationsManager._hitForward_01;
+        }
+        else if (_angleHitFrom >= -45 && _angleHitFrom <= 45)
+        {
+            _damageAnimation = character._characterAnimationsManager._hitBackward_01;
+        }
+        else if (_angleHitFrom >= -144 && _angleHitFrom <= -45)
+        {
+            _damageAnimation = character._characterAnimationsManager._hitLeft_01;
+        }
+        else if(_angleHitFrom >= 45 && _angleHitFrom <= 144)
+        {
+            _damageAnimation = character._characterAnimationsManager._hitRight_01;
+        }
+
+        if(_poiseIsBroken)
+        {
+            character._characterAnimationsManager.PlayTargetActionAnimation(_damageAnimation,true);
+        }
     }
 }
