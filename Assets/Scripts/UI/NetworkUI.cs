@@ -8,10 +8,8 @@ using TMPro;
 public class NetworkUI : MonoBehaviour
 {
 
-    [SerializeField] private Button serverBtn;
     [SerializeField] private Button hostBtn;
     [SerializeField] private Button clientBtn;
-    [SerializeField] private Button physcisExecuteBtn;
     [SerializeField] private TMP_InputField _joinCodeInput;
     [SerializeField] private TextMeshProUGUI _Joincode;
 
@@ -20,10 +18,6 @@ public class NetworkUI : MonoBehaviour
     private void Awake()
     {
         _Joincode.enabled = false;
-        serverBtn.onClick.AddListener(() =>
-        {
-            NetworkManager.Singleton.StartServer();
-        });
 
         hostBtn.onClick.AddListener(async () =>
         {
@@ -51,11 +45,7 @@ public class NetworkUI : MonoBehaviour
         //    _hasServerStarted = true;
         //};
 
-        physcisExecuteBtn.onClick.AddListener(() =>
-        {
-         
-            SpawnerController.Instance.SpawnObject();
-        });
+        
 
     }
 

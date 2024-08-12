@@ -76,6 +76,24 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "SwitchRightWeapon",
+                    "type": "Button",
+                    "id": "73280e7f-8f7f-42c3-b1e8-10639ea02179",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "SwitchLeftWeapon",
+                    "type": "Button",
+                    "id": "476b3a42-8adc-45d0-ab8d-b2438f9c26ba",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -296,6 +314,28 @@
                     "processors": "",
                     "groups": "KeyboardMouse",
                     "action": "Hold RT",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "855e0934-3688-45ce-8d6e-9d22b583c552",
+                    "path": "<Keyboard>/2",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "KeyboardMouse",
+                    "action": "SwitchRightWeapon",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c95cd582-526c-4b52-9231-956a92529472",
+                    "path": "<Keyboard>/3",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "KeyboardMouse",
+                    "action": "SwitchLeftWeapon",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

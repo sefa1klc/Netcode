@@ -1182,6 +1182,8 @@ MonoBehaviour:
     m_InternalValue: 10
   isRunning:
     m_InternalValue: 0
+  isChargingAttack:
+    m_InternalValue: 0
   _currentWeaponBeingUse:
     m_InternalValue: 0
   _currentRightHandWeaponID:
@@ -1204,10 +1206,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c6342b260edc1d409ddcfba33b7f767, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _lastDamageAnimationPlayed: 
   _hitForward_01: _hitForward_01
+  _hitForward_02: _hitForward_02
   _hitBackward_01: _hitBackward_01
+  _hitBackward_02: _hitBackward_02
   _hitLeft_01: _hitLeft_01
+  _hitLeft_02: _hitLeft_02
   _hitRight_01: _hitRight_01
+  _hitRight_02: _hitRight_02
+  _forwardDamage: []
+  _backwardDamage: []
+  _rightDamage: []
+  _leftDamage: []
 --- !u!114 &4206021811114348245
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1230,8 +1241,6 @@ MonoBehaviour:
   _characterAnimationsManager: {fileID: 0}
   _characterCombatManager: {fileID: 0}
   _characterSoundFXManager: {fileID: 0}
-  _respawnCharacter: 0
-  _switchRightWeapon: 0
   _playerStatManager: {fileID: 0}
   CharacterAnimationsManager: {fileID: 0}
   _playerInventoryManager: {fileID: 0}

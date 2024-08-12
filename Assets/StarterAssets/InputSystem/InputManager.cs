@@ -19,6 +19,8 @@ public class InputManager : Singleton<InputManager>
     public bool Actions { get; set; }
     public bool RT_Input { get; set; }
     public bool hold_RT_Input { get; set; }
+    public bool rightWeapon { get; set; }
+    public bool leftWeapon { get; set; }
 
     [Header("Movement Settings")]
     public bool analogMovement;
@@ -33,6 +35,8 @@ public class InputManager : Singleton<InputManager>
     private InputAction _RB_Action;
     private InputAction _RT_Action;
     private InputAction hold_RT_Action;
+    private InputAction rightWeaponAction;
+    private InputAction leftWeaponAction;
 
 
 
@@ -47,6 +51,8 @@ public class InputManager : Singleton<InputManager>
         _RB_Action = _currentMap.FindAction("RB");
         _RT_Action = _currentMap.FindAction("RT");
         hold_RT_Action = _currentMap.FindAction("Hold RT");
+        rightWeaponAction = _currentMap.FindAction("SwitchRightWeapon");
+        leftWeaponAction = _currentMap.FindAction("SwitchLeftWeapon");
 
         _moveAction.performed += onMove;
         _lookAction.performed += onLook;
@@ -55,6 +61,8 @@ public class InputManager : Singleton<InputManager>
         _RB_Action.performed += onAction;
         _RT_Action.performed += onRT;
         hold_RT_Action.performed += onHoldRT;
+        rightWeaponAction.performed += OnRightWeapon;
+        leftWeaponAction.performed += OnLeftWeapon;
 
         _moveAction.canceled += onMove;
         _lookAction.canceled += onLook;
@@ -63,6 +71,8 @@ public class InputManager : Singleton<InputManager>
         _RB_Action.canceled += onAction;
         _RT_Action.canceled += onRT;
         hold_RT_Action.canceled += onHoldRT;
+        rightWeaponAction.canceled += OnRightWeapon;
+        leftWeaponAction.canceled += OnLeftWeapon;
     }
 
     private void HideCursor()
@@ -104,12 +114,24 @@ public class InputManager : Singleton<InputManager>
         hold_RT_Input = context.ReadValueAsButton();
     }
 
+    private void OnRightWeapon(InputAction.CallbackContext context)
+    {
+        rightWeapon = context.ReadValueAsButton();
+    }
+
+    private void OnLeftWeapon(InputAction.CallbackContext context)
+    {
+        leftWeapon = context.ReadValueAsButton();
+    }
+
     private void Update()
     {
         RunnigControl();
         HandleAcitonInput();
         handleRTInput();
         handleChargedRTInput();
+        HandleSwitchRightWeaponInput();
+        HandleSwitchLeftWeaponInput();
     }
 
     private void OnEnable()
@@ -182,12 +204,31 @@ public class InputManager : Singleton<InputManager>
 
     private void handleChargedRTInput()
     {
-        if (_playerManager._isPerformingAction)
+        if (_playerManager == null) return;
+         if (_playerManager._isPerformingAction)
         {
             if (_playerManager._playerNetworkManager._isUsingRightHand.Value)
             {
                 _playerManager._playerNetworkManager.isChargingAttack.Value = hold_RT_Input;
             } 
+        }
+    }
+
+    private void HandleSwitchRightWeaponInput()
+    {
+        if (rightWeapon)
+        {
+            rightWeapon = false;
+            _playerManager._playerEquipmentManager.SwitchRightWeapon();
+        }
+    }
+
+    private void HandleSwitchLeftWeaponInput()
+    {
+        if (leftWeapon)
+        {
+            leftWeapon = false;
+            _playerManager._playerEquipmentManager.SwitchLeftWeapon();
         }
     }
 }

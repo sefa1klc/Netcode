@@ -71,11 +71,9 @@ public class TakeDamageEffect : InstantCharacterEffect
         {
             _finalDamageDeath = 1;
         }
-     
 
-        character._playerNetworkManager.currenthealth.Value -= _finalDamageDeath;
-
-        Debug.Log("Final Damage" + _finalDamageDeath);
+        character._characterNetworkManager.currenthealth.Value -= _finalDamageDeath;
+        //character._playerNetworkManager.currenthealth.Value -= _finalDamageDeath;      
     }
 
     private void PlayDamageVFX(CharacterManager character)

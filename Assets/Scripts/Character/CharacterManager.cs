@@ -20,6 +20,9 @@ public class CharacterManager : NetworkBehaviour
     [HideInInspector] public CharacterCombatManager _characterCombatManager;
     [HideInInspector] public CharacterSoundFXManager _characterSoundFXManager;
 
+    [Header("Character Group")]
+    public CharacterGroup _characterGroup;
+
 
     protected virtual void Awake()
     {
@@ -41,6 +44,11 @@ public class CharacterManager : NetworkBehaviour
     protected virtual void Start()
     {
         IgnoreMyOWnCollider();
+    }
+
+    protected virtual void FixedUpdate()
+    {
+
     }
 
     public virtual IEnumerator ProcessDeathEvent(bool manuallySelectDeathAnimation = false)

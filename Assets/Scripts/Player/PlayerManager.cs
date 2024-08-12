@@ -5,10 +5,6 @@ using Unity.Netcode;
 
 public class PlayerManager : CharacterManager
 {
-    [Header("Debug Menu")]
-    [SerializeField] private bool _respawnCharacter = false;
-    [SerializeField] private bool _switchRightWeapon = false;
-
     CharachterLocomotionManager _characterLocomotionManager;
     [HideInInspector] public PlayerStatManager _playerStatManager;
     [HideInInspector] public CharacterAnimationsManager CharacterAnimationsManager;
@@ -39,8 +35,6 @@ public class PlayerManager : CharacterManager
         if (!IsOwner) return;
 
         _playerStatManager.RegenerateStamina();
-
-        DebugMenu();
     }
 
     private void OnClientConnectedCallback(ulong clientID)
@@ -181,23 +175,6 @@ public class PlayerManager : CharacterManager
         _playerNetworkManager.OnCurrentLefttHandWeaponIDChange(0,_playerNetworkManager._currentLeftHandWeaponID.Value);
 
         
-    }
-
-    //DELETE LATER THIS FOR DEBUG
-    private void DebugMenu()
-    {
-        if (_respawnCharacter)
-        {
-            _respawnCharacter = false;
-            ReviveCharacter();
-        }
-
-
-        if (_switchRightWeapon)
-        {
-            _switchRightWeapon = false;
-            _playerEquipmentManager.SwitchRightWeapon();
-        }
     }
 
 }
