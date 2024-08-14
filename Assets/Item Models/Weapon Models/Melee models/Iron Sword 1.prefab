@@ -75,6 +75,8 @@ MonoBehaviour:
   _contactPoint: {x: 0, y: 0, z: 0}
   _characterCausingDamage: {fileID: 0}
   _lightAttack_01_Modifier: 0
+  _HeavyAttack_01_Modifier: 0
+  _ChargeAttack_01_Modifier: 0
 --- !u!1 &1959758894348535083
 GameObject:
   m_ObjectHideFlags: 0
